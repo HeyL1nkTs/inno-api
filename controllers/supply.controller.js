@@ -42,20 +42,6 @@ async function getSupplies(req, res) {
             supplies = await Supply.find();
         }
 
-        // Agrega la imagen en base64 a cada suministro usando un bucle for...of
-        for (const supply of supplies) {
-            if (supply.image_url) {
-                const imagePath = path.join(__dirname, '..', 'resources', supply.image_url);
-                try {
-                    const image = await fs.readFile(imagePath); // Lee la imagen del sistema de archivos
-                    supply.image_url = `data:image/jpeg;base64,${image.toString('base64')}`; // Convierte a base64
-                } catch (err) {
-                    console.error(`Error reading image for supply ID ${supply._id}:`, err);
-                    supply.image_url = ''; // Si hay un error, asigna null
-                }
-            }
-        }
-
         res.status(200).json(supplies);
     } catch (error) {
         console.error('Error fetching supplies:', error);
@@ -73,7 +59,7 @@ async function createSupply(req, res) {
     try {
 
         const data = req.body;
-        data.image_url = req.file ? req.file.filename : '';
+        data.image_url = processImage(req.file);
         data.stock = 0;
         data.price = Number(data.price)
         const supplyData = new SupplySchema(data);
@@ -104,17 +90,6 @@ async function deleteSupply(req, res) {
         const result = await Supply.findByIdAndDelete(id);
         if (!result) {
             return res.status(404).json({ message: 'Suministro no encontrado' });
-        }
-        // Construir la ruta del archivo de la imagen
-        const imagePath = path.join(__dirname, '..', 'resources', result.image_url); // Ajusta la ruta según tu estructura de carpetas
-
-        try {
-            // Verificar si el archivo existe y eliminarlo
-            await fs.access(imagePath);  // Verifica si el archivo es accesible
-            await fs.unlink(imagePath);  // Elimina el archivo
-        } catch (err) {
-            console.error('Imagen no encontrada:', err);
-            // Si no se puede encontrar el archivo o tiene algún error, podemos continuar sin eliminar la imagen
         }
 
         //eliminar id de todos los productos
@@ -157,10 +132,8 @@ async function updateSupply(req, res) {
     try {
         const { id } = req.params; // Obtener el ID del cuerpo de la solicitud
         const data = req.body;
-        console.log(data);
         data.stock = Number(data.stock);
         data.price = Number(data.price);
-        data.image_url = req.file ? req.file.filename : ''; // Si hay un archivo en la solicitud, asignar el nombre del archivo a la propiedad image_url
 
         const supplyData = new SupplySchema(data); // Crear una instancia de SupplySchema con los datos de la solicitud
 
@@ -174,7 +147,7 @@ async function updateSupply(req, res) {
             supplyData.price = 0;
         }
 
-        if (supplyData.image_url === '') {
+        if (!req.file) {
             updatedSupply = await Supply.findByIdAndUpdate(id, {
                 name: supplyData.name,
                 price: supplyData.price,
@@ -182,6 +155,7 @@ async function updateSupply(req, res) {
                 stock: supplyData.stock
             })
         } else {
+            supplyData.image_url = processImage(req.file);
             updatedSupply = await Supply.findByIdAndUpdate(id, supplyData);
         }
 
@@ -217,6 +191,24 @@ async function updateStock(req, res) {
     } catch (error) {
         console.log('Error al actualizar el stock:', error);
         res.status(400).send(error.details ? error.details[0].message : 'Error al actualizar el stock');
+    }
+}
+
+function processImage(file) {
+    try {
+        // Verifica si hay un archivo
+        if (!file) {
+            return '';
+        }
+        // Convierte el archivo a Base64
+        const imageBuffer = file.buffer; // Contenido del archivo en buffer
+        const mimeType = file.mimetype; // Tipo MIME del archivo (ej: 'image/jpeg')
+        const base64Image = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+
+        // Devuelve la URL Base64
+        return base64Image;
+    } catch (error) {
+        console.error('Error processing file:', error);
     }
 }
 

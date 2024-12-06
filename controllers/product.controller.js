@@ -39,22 +39,6 @@ async function getProducts(req, res) {
             products = await Product.find();
         }
 
-        // Agrega la imagen en base64 a cada suministro usando un bucle for...of
-        for (const product of products) {
-            /*if (product.image_url) {
-                const imagePath = path.join(__dirname, '..', 'resources', product.image_url);
-                try {
-                    const image = await fs.readFile(imagePath); // Lee la imagen del sistema de archivos
-                    product.image_url = `data:image/jpeg;base64,${image.toString('base64')}`; // Convierte a base64
-                } catch (err) {
-                    console.error(`Error reading image for Product ID ${product._id}:`, err);
-                    product.image_url = ''; // Si hay un error, asigna null
-                }
-            }*/
-
-            product.image_url = await findImages(product.image_url);
-        }
-
         res.status(200).json(products);
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -67,7 +51,6 @@ async function updateProduct(req, res) {
         const data = req.body;
         data.stock = Number(data.stock);
         data.price = Number(data.price);
-        data.image_url = req.file ? req.file.filename : '';
         const { id } = req.params;
         const productData = new ProductSchema(data);
 
@@ -79,7 +62,7 @@ async function updateProduct(req, res) {
 
         let updatedProduct
 
-        if (_.isEmpty(productData.image_url)) {
+        if (!req.file) {
             updatedProduct = await Product.findByIdAndUpdate(
                 id,
                 {
@@ -92,6 +75,7 @@ async function updateProduct(req, res) {
                 { new: true }  // Opciones para devolver el documento actualizado
             );
         } else {
+            productData.image_url = processImage(req.file);
             updatedProduct = await Product.findByIdAndUpdate(id, productData, { new: true });
         }
 
@@ -109,7 +93,7 @@ async function updateProduct(req, res) {
 async function createProduct(req, res) {
     try {
         const data = req.body;
-        data.image_url = req.file ? req.file.filename : '';
+        data.image_url = processImage(req.file);
         data.stock = 0;
         data.price = Number(data.price)
         const productData = new ProductSchema(data);
@@ -246,19 +230,6 @@ async function deleteProduct(req, res) {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        const imagePath = path.join(__dirname, '..', 'resources', deletedProduct.image_url); // Ajusta la ruta según tu estructura de carpetas
-
-        try {
-            // Verificar si el archivo existe y eliminarlo
-            await fs.access(imagePath);  // Verifica si el archivo es accesible
-            await fs.unlink(imagePath);  // Elimina el archivo
-        } catch (err) {
-            console.error('Imagen no encontrada:', err);
-            // Si no se puede encontrar el archivo o tiene algún error, podemos continuar sin eliminar la imagen
-        }
-
-        //return stock to supplies
-
         for (const supply of deletedProduct.supplies) {
             const foundSupply = await Supply.findById(supply._id);
 
@@ -296,8 +267,6 @@ async function getProductsWithExtrasRelationated(req, res) {
 
         // Iterar sobre cada producto y buscar los extras relacionados
         for (const product of products) {
-
-            product.image_url = findImages(product.image_url);
 
             // Buscar extras que contienen este producto
             const relatedExtras = await Extras.find({
@@ -344,15 +313,22 @@ async function getProductsWithExtrasRelationated(req, res) {
     }
 }
 
-async function findImages(image_url) {
-    const imagePath = path.join(__dirname, '..', 'resources', image_url);
+function processImage(file) {
     try {
-        const image = await fs.readFile(imagePath); // Lee la imagen del sistema de archivos
-        image_url = `data:image/jpeg;base64,${image.toString('base64')}`; // Convierte a base64
-        return image_url;
-    } catch (err) {
-        console.error(`Error reading image for product`, err);
-        image_url = ''; // Si hay un error, asigna null
+        // Verifica si hay un archivo
+        if (!file) {
+            return '';
+        }
+
+        // Convierte el archivo a Base64
+        const imageBuffer = file.buffer; // Contenido del archivo en buffer
+        const mimeType = file.mimetype; // Tipo MIME del archivo (ej: 'image/jpeg')
+        const base64Image = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+
+        // Devuelve la URL Base64
+        return base64Image;
+    } catch (error) {
+        console.error('Error processing file:', error);
     }
 }
 

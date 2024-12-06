@@ -20,7 +20,7 @@ async function createCombo(req, res) {
     try {
 
         const data = req.body;
-        data.image_url = req.file ? req.file.filename : '';
+        data.image_url = processImage(req.file);
         data.stock = 0;
         data.price = Number(data.price)
         const comboData = new ComboSchema(data);
@@ -65,21 +65,6 @@ async function getCombos(req, res) {
             combos = await Combo.find();
         }
 
-        // Agrega la imagen en base64 a cada suministro usando un bucle for...of
-        for (const combo of combos) {
-            /*if (combo.image_url) {
-                const imagePath = path.join(__dirname, '..', 'resources', combo.image_url);
-                try {
-                    const image = await fs.readFile(imagePath); // Lee la imagen del sistema de archivos
-                    combo.image_url = `data:image/jpeg;base64,${image.toString('base64')}`; // Convierte a base64
-                } catch (err) {
-                    console.error(`Error reading image for combo ID ${combo._id}:`, err);
-                    combo.image_url = ''; // Si hay un error, asigna null
-                }
-            }*/
-            combo.image_url = await findPhotos(combo.image_url);
-        }
-
         res.status(200).json(combos);
     } catch (error) {
         console.error('Error fetching combos:', error);
@@ -92,7 +77,6 @@ async function updateCombo(req, res) {
         const data = req.body;
         data.stock = Number(data.stock);
         data.price = Number(data.price);
-        data.image_url = req.file ? req.file.filename : '';
         const { id } = req.params;
         const comboData = new ComboSchema(data);
 
@@ -104,7 +88,7 @@ async function updateCombo(req, res) {
 
         let updatedCombo
 
-        if (_.isEmpty(comboData.image_url)) {
+        if (!req.file) {
             updatedCombo = await Combo.findByIdAndUpdate(
                 id,
                 {
@@ -117,6 +101,7 @@ async function updateCombo(req, res) {
                 { new: true }  // Opciones para devolver el documento actualizado
             );
         } else {
+            comboData.image_url = processImage(req.file);
             updatedCombo = await Combo.findByIdAndUpdate(id, comboData, { new: true });
         }
 
@@ -138,17 +123,6 @@ async function deleteCombo(req, res) {
 
         if (!deletedCombo) {
             return res.status(404).json({ message: 'Combo not found' });
-        }
-
-        const imagePath = path.join(__dirname, '..', 'resources', deletedCombo.image_url); // Ajusta la ruta según tu estructura de carpetas
-
-        try {
-            // Verificar si el archivo existe y eliminarlo
-            await fs.access(imagePath);  // Verifica si el archivo es accesible
-            await fs.unlink(imagePath);  // Elimina el archivo
-        } catch (err) {
-            console.error('Imagen no encontrada:', err);
-            // Si no se puede encontrar el archivo o tiene algún error, podemos continuar sin eliminar la imagen
         }
 
         //return stock to products
@@ -285,7 +259,6 @@ async function getCombosWithProductsAssosiated(req, res) {
         const result = [];
 
         for (const combo of combos) {
-            combo.image_url = await findPhotos(combo.image_url);
 
             const isAvailable = combo.stock > 0 ? true : false;
 
@@ -307,15 +280,22 @@ async function getCombosWithProductsAssosiated(req, res) {
     }
 }
 
-async function findPhotos(image_url) {
-    const imagePath = path.join(__dirname, '..', 'resources', image_url);
+function processImage(file) {
     try {
-        const image = await fs.readFile(imagePath); // Lee la imagen del sistema de archivos
-        image_url = `data:image/jpeg;base64,${image.toString('base64')}`; // Convierte a base64
-        return image_url;
-    } catch (err) {
-        console.error(`Error reading image for combo`, err);
-        image_url = ''; // Si hay un error, asigna null
+        // Verifica si hay un archivo
+        if (!file) {
+            return '';
+        }
+
+        // Convierte el archivo a Base64
+        const imageBuffer = file.buffer; // Contenido del archivo en buffer
+        const mimeType = file.mimetype; // Tipo MIME del archivo (ej: 'image/jpeg')
+        const base64Image = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+
+        // Devuelve la URL Base64
+        return base64Image;
+    } catch (error) {
+        console.error('Error processing file:', error);
     }
 }
 

@@ -6,15 +6,7 @@ const productController = require('../controllers/product.controller');
 const comboController = require('../controllers/combo.controller');
 const extraController = require('../controllers/extra.controller');
 // Configuración de multer para guardar las imágenes en la carpeta resources
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'resources'); // Carpeta donde se guardarán las imágenes
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + '-' + file.originalname); // Nombre único para cada archivo
-    }
-});
+const storage = multer.memoryStorage();
 
 // Solo acepta archivos con extensión jpeg, jpg o png
 const fileFilter = (req, file, cb) => {
