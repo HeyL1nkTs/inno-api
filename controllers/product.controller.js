@@ -349,10 +349,10 @@ async function findImages(image_url) {
         const imagePath = path.join(__dirname, '..', 'resources', product.image_url);
         try {
             const image = await fs.readFile(imagePath); // Lee la imagen del sistema de archivos
-            product.image_url = `data:image/jpeg;base64,${image.toString('base64')}`; // Convierte a base64
+            image_url = `data:image/jpeg;base64,${image.toString('base64')}`; // Convierte a base64
         } catch (err) {
             console.error(`Error reading image for Product ID ${product._id}:`, err);
-            product.image_url = ''; // Si hay un error, asigna null
+            image_url = ''; // Si hay un error, asigna null
         }
     }
 
