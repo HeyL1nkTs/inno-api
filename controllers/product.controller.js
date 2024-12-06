@@ -345,18 +345,15 @@ async function getProductsWithExtrasRelationated(req, res) {
 }
 
 async function findImages(image_url) {
-    if (image_url) {
-        const imagePath = path.join(__dirname, '..', 'resources', image_url);
-        try {
-            const image = await fs.readFile(imagePath); // Lee la imagen del sistema de archivos
-            image_url = `data:image/jpeg;base64,${image.toString('base64')}`; // Convierte a base64
-        } catch (err) {
-            console.error(`Error reading image for product`, err);
-            image_url = ''; // Si hay un error, asigna null
-        }
+    const imagePath = path.join(__dirname, '..', 'resources', image_url);
+    try {
+        const image = await fs.readFile(imagePath); // Lee la imagen del sistema de archivos
+        image_url = `data:image/jpeg;base64,${image.toString('base64')}`; // Convierte a base64
+        return image_url;
+    } catch (err) {
+        console.error(`Error reading image for product`, err);
+        image_url = ''; // Si hay un error, asigna null
     }
-
-    return image_url;
 }
 
 

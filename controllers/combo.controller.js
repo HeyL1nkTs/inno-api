@@ -16,8 +16,8 @@ const defaultSchema = Joi.object({
     products: Joi.allow('')
 });
 
-async function createCombo(req, res){
-    try{
+async function createCombo(req, res) {
+    try {
 
         const data = req.body;
         data.image_url = req.file ? req.file.filename : '';
@@ -25,7 +25,7 @@ async function createCombo(req, res){
         data.price = Number(data.price)
         const comboData = new ComboSchema(data);
 
-        if(comboData.products){
+        if (comboData.products) {
             comboData.products = JSON.parse(comboData.products);
         }
 
@@ -77,7 +77,7 @@ async function getCombos(req, res) {
                     combo.image_url = ''; // Si hay un error, asigna null
                 }
             }*/
-           combo.image_url = await findPhotos(combo.image_url);
+            combo.image_url = await findPhotos(combo.image_url);
         }
 
         res.status(200).json(combos);
@@ -240,7 +240,7 @@ async function updateStock(req, res) {
             foundProd.stock = productStock - requiredStock; //eje 2 - 2 = 0
 
             if (foundProd.stock < 0) {
-                errorMessages.push(`Not enough stock for ${foundProd.name}, ${productStock} found in stock and you need at least ${comboRequired* comboData.stock}.`);
+                errorMessages.push(`Not enough stock for ${foundProd.name}, ${productStock} found in stock and you need at least ${comboRequired * comboData.stock}.`);
                 continue;
             }
 
@@ -279,7 +279,7 @@ async function updateStock(req, res) {
 }
 
 async function getCombosWithProductsAssosiated(req, res) {
-    try{
+    try {
         const combos = await Combo.find();
 
         const result = [];
@@ -307,19 +307,16 @@ async function getCombosWithProductsAssosiated(req, res) {
     }
 }
 
-async function findPhotos(image_url){
-    if (image_url) {
-        const imagePath = path.join(__dirname, '..', 'resources', image_url);
-        try {
-            const image = await fs.readFile(imagePath); // Lee la imagen del sistema de archivos
-            image_url = `data:image/jpeg;base64,${image.toString('base64')}`; // Convierte a base64
-        } catch (err) {
-            console.error(`Error reading image for combo`, err);
-            image_url = ''; // Si hay un error, asigna null
-        }
+async function findPhotos(image_url) {
+    const imagePath = path.join(__dirname, '..', 'resources', image_url);
+    try {
+        const image = await fs.readFile(imagePath); // Lee la imagen del sistema de archivos
+        image_url = `data:image/jpeg;base64,${image.toString('base64')}`; // Convierte a base64
+        return image_url;
+    } catch (err) {
+        console.error(`Error reading image for combo`, err);
+        image_url = ''; // Si hay un error, asigna null
     }
-
-    return image_url;
 }
 
 module.exports = {
