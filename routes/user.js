@@ -29,5 +29,11 @@ router.use(express.json());
 
 router.post('/login', userController.initSesion);
 router.put('/user/main/:id', userController.updateUserMain);
+router.get('/user/:id', userController.getUsers);
+router.post('/user', userController.addUser);
+router.delete('/user/:id', userController.deleteUser);
+router.put('/user/:id', userController.editUser);
+
+router.delete('/logout/:id', userController.closeUserSession);
 
 module.exports = router;
