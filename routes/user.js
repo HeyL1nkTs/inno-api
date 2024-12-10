@@ -34,6 +34,6 @@ router.post('/user', userController.addUser);
 router.delete('/user/:id', userController.deleteUser);
 router.put('/user/:id', userController.editUser);
 
-router.delete('/logout/:id', userController.closeUserSession);
+router.post('/logout', userController.closeUserSession);
 
 module.exports = router;

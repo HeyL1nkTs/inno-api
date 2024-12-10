@@ -75,10 +75,12 @@ async function initSesion(req, res) {
 
 async function closeUserSession(req, res) {
     try {
-        const { id } = req.params;
-        await Session.findByIdAndDelete(id);
-        closeSession();
-        await Cashier.deleteMany({ status: 'open' }); //elimina todas las open
+        const user = req.body;
+        await Session.findByIdAndDelete(user.sessionId);
+        if(user.role === 'admin'){
+            closeSession();
+            await Cashier.deleteMany({ status: 'open' }); //elimina todas las open
+        }
         res.status(200).send({ message: 'Sesión cerrada' });
     } catch (error) {
         console.error('Error closing session:', error);
