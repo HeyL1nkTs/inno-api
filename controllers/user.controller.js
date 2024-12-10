@@ -63,6 +63,9 @@ async function initSesion(req, res) {
             sessionId: newSession._id
         });
 
+        console.log('Sesion iniciada:', token);
+        console.log('Sesion iniciada:', newSession._id);
+
         res.status(200).send({ token: token });
     } catch (error) {
         console.error('Error login:', error);
@@ -198,14 +201,26 @@ async function editUser(req, res) {
         const { id } = req.params;
         const { name, username, password, phone, email, role } = req.body;
 
-        const updatedUser = await User.findByIdAndUpdate(id, {
-            name: name,
-            username: username,
-            password: password,
-            phone: phone,
-            email: email,
-            role: role
-        });
+        let updatedUser;
+        if(password){
+            const hashedPassword = await bcrypt.hash(password, 10);
+            updatedUser = await User.findByIdAndUpdate(id, {
+                name: name,
+                username: username,
+                password: hashedPassword,
+                phone: phone,
+                email: email,
+                role: role
+            });
+        }else{
+            updatedUser = await User.findByIdAndUpdate(id, {
+                name: name,
+                username: username,
+                phone: phone,
+                email: email,
+                role: role
+            });
+        }
 
         res.status(200).send(updatedUser);
     } catch (error) {
