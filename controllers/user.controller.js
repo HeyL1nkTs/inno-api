@@ -7,6 +7,7 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('../service/jwt.service')
 const _ = require('lodash');
+const { closeSession } = require('../service/socket.service');
 
 const defaultSchema = Joi.object({
     _id: Joi.string().allow(''),
@@ -34,12 +35,11 @@ async function initSesion(req, res) {
         }
 
         //una vez verificado, registrar usario logeado en una tabla de sesion para evitar sesiones repetidas e inconsistencias
-        const session = Session.findOne({ userId: foundUser._id });
+        const session = await Session.findOne({ userId: foundUser._id });
 
-        if (_.isEqual(session.userId, foundUser._id)) {
+        if(session){
             return res.status(401).send({ message: 'El usuario ya tiene una sesion en otro equipo' });
         }
-
 
         if (foundUser.role === 'seller') { //check if is seller
             const openCashier = await Cashier.findOne({ status: 'open' });
@@ -74,6 +74,7 @@ async function closeUserSession(req, res) {
     try {
         const { id } = req.params;
         await Session.findByIdAndDelete(id);
+        closeSession();
         await Cashier.deleteMany({ status: 'open' }); //elimina todas las open
         res.status(200).send({ message: 'Sesión cerrada' });
     } catch (error) {
