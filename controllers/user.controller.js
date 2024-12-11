@@ -37,7 +37,7 @@ async function initSesion(req, res) {
         //una vez verificado, registrar usario logeado en una tabla de sesion para evitar sesiones repetidas e inconsistencias
         const session = await Session.findOne({ userId: foundUser._id });
 
-        if(session){
+        if (session) {
             return res.status(401).send({ message: 'El usuario ya tiene una sesion en otro equipo' });
         }
 
@@ -45,7 +45,7 @@ async function initSesion(req, res) {
             const openCashier = await Cashier.findOne({ status: 'open' });
 
             if (!openCashier) {
-                return res.status(401).send({ message: 'Aun no inicia la caja el administrador!' });
+                return res.status(401).send({ message: 'Aun no inicia la caja un administrador!' });
             }
         }
 
@@ -60,11 +60,8 @@ async function initSesion(req, res) {
             email: foundUser.email,
             phone: foundUser.phone,
             role: foundUser.role,
-            sessionId: newSession._id
+            sessionId: newSession._id,
         });
-
-        console.log('Sesion iniciada:', token);
-        console.log('Sesion iniciada:', newSession._id);
 
         res.status(200).send({ token: token });
     } catch (error) {
@@ -77,10 +74,6 @@ async function closeUserSession(req, res) {
     try {
         const user = req.body;
         await Session.findByIdAndDelete(user.sessionId);
-        if(user.role === 'admin'){
-            closeSession();
-            await Cashier.deleteMany({ status: 'open' }); //elimina todas las open
-        }
         res.status(200).send({ message: 'Sesión cerrada' });
     } catch (error) {
         console.error('Error closing session:', error);
@@ -204,7 +197,7 @@ async function editUser(req, res) {
         const { name, username, password, phone, email, role } = req.body;
 
         let updatedUser;
-        if(password){
+        if (password) {
             const hashedPassword = await bcrypt.hash(password, 10);
             updatedUser = await User.findByIdAndUpdate(id, {
                 name: name,
@@ -214,7 +207,7 @@ async function editUser(req, res) {
                 email: email,
                 role: role
             });
-        }else{
+        } else {
             updatedUser = await User.findByIdAndUpdate(id, {
                 name: name,
                 username: username,

@@ -1,19 +1,20 @@
 const express = require('express');
-const http = require('http');
 const app = express();
+const http = require('http').createServer(app);
+const { initializeSocket } = require('./service/socket.service');
+const io = initializeSocket(http);
+app.io = io;
 require('dotenv').config();
 const cors = require('cors');
 const PORT = process.env.SERVICE_PORT || 3030;
 const db = require('./database/connection');
 const seed = require('./database/user.seed');
-const { initializeSocket } = require('./service/socket.service');
 
 try {
     if (!db()) {
         console.error('Fallo en la conexión a MongoDB, cerrando servidor.');
         process.exit(1);
     }
-
 
     const startApp = async () => {
         await seed();
@@ -32,14 +33,16 @@ try {
         app.use('/cashier', require('./routes/cashier'));
         app.use('/sale', require('./routes/sale'));
 
-        // Crear servidor HTTP
-        const server = http.createServer(app);
+        io.on('connection', (socket) => {
+            console.log('A client connected:', socket.id);
 
-        // Inicializar Socket.IO
-        initializeSocket(server);
+            socket.on('disconnect', () => {
+                console.log('A client disconnected:', socket.id);
+            });
+        });
 
         // Iniciar servidor
-        server.listen(PORT, () => {
+        http.listen(PORT, () => {
             console.log(`Servidor escuchando en http://localhost:${PORT}`);
         });
     };

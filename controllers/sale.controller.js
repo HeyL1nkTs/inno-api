@@ -3,11 +3,13 @@ const Order = require('../models/order');
 const Product = require('../models/product');
 const Supply = require('../models/supply');
 const Combo = require('../models/combo');
+const Cashier = require('../models/cashier');
 const { emitPaymentInfo } = require('../service/socket.service');
 
 async function generateOrder(req, res) {
     try {
         const { orders, paymentInfo, seller } = req.body;
+        const { io } = req.app;
 
         if (!orders || !paymentInfo || !seller) {
             return res.status(400).json({ message: 'Missing sales or payment or seller info' });
@@ -32,8 +34,20 @@ async function generateOrder(req, res) {
             date : new Date()
         }
 
+        const cashier = await Cashier.findOne({ status: 'open' });
+        let total = 0;
+        if(cashier) { // Si hay una caja abierta, sumar el total de la venta al monto inicial
+            total = cashier.initial_amount + paymentInfo.total;
+            await Cashier.updateOne({ status: 'open' }, { initial_amount: total }); //actualizar el monto de la caja
+        }
+
+        const consolidatedOrder = {
+            paymentInfo: paymentInfoCopy,
+            currentAmount: total,
+        }
+
         // Emitir los datos de paymentInfo al administrador
-        emitPaymentInfo(paymentInfoCopy);
+        emitPaymentInfo(io, consolidatedOrder);
 
         return res.status(200).json({ message: 'Order generated successfully' });
     } catch (error) {

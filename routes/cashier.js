@@ -7,4 +7,6 @@ router.use(express.json());
 router.post('/open', cashierController.openCashier);
 router.delete('/close/:id', cashierController.closeCashier);
 
+router.get('/exist', cashierController.getChashierIfExist);
+
 module.exports = router;
