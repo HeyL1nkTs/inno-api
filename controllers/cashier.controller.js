@@ -1,6 +1,7 @@
 const Cashier = require('../models/cashier');
 require('dotenv').config();
 const { closeSession, closeAllCashiers, openAllCashier } = require('../service/socket.service');
+const { consolidateOrders } = require('../controllers/sale.controller');
 
 async function openCashier(req, res) {
     try {
@@ -43,6 +44,8 @@ async function closeCashier(req, res) {
 
         closeSession(io);
         closeAllCashiers(io);
+
+        await consolidateOrders();
 
         res.status(200).json(cashier);
     } catch (error) {
